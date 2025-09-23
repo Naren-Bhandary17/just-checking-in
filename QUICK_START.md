@@ -10,7 +10,7 @@ When referenced, execute these steps in order:
 1. **Navigate to directory:** `cd DailyCheckinExpo` (if not already there)
 2. **Check if server is running:** `netstat -an | findstr 808`
 3. **If not running, start server:** `npm run dev:tunnel`
-4. **Provide tunnel URL:** `exp://hre66og-anonymous-8087.exp.direct` ✅ **LATEST WORKING**
+4. **Provide tunnel URL:** `exp://hre66og-anonymous-8099.exp.direct` ✅ **LATEST WORKING**
 5. **Confirm setup complete and ready for testing**
 
 ### Fallback Steps (if primary fails):
@@ -22,8 +22,8 @@ When referenced, execute these steps in order:
 ## 🚀 Instant Setup & Testing
 
 ### Direct Tunnel URLs (Ready to Use)
-- **Primary (LATEST):** `exp://hre66og-anonymous-8087.exp.direct` ✅ **ALL FIXES APPLIED**
-- **Backup:** `exp://hre66og-anonymous-8086.exp.direct` (Error handling fixed)
+- **PRIMARY (WORKING):** `exp://hre66og-anonymous-8099.exp.direct` ✅ **WAVE ANIMATIONS + ALL FIXES**
+- **Backup:** `exp://hre66og-anonymous-8087.exp.direct` (Previous working version)
 - **Fallback:** `exp://hre66og-anonymous-8084.exp.direct` (Basic functionality)
 
 ### One-Command Start (Recommended)
@@ -44,6 +44,9 @@ npx expo start --tunnel --port 8081
 npm run dev:tunnel-alt
 # or
 npx expo start --tunnel --port 8084
+
+# WORKING PORT (Latest):
+npx expo start --tunnel --port 8099 --clear
 ```
 
 ### Dependencies Setup (if needed)
@@ -60,7 +63,7 @@ npx expo install expo-av expo-speech lucide-react-native
 ## 📱 Testing Instructions
 1. **Start development server** using commands above
 2. **Open Expo Go app** on your mobile device
-3. **Enter tunnel URL directly:** `exp://hre66og-anonymous-8081.exp.direct`
+3. **Enter tunnel URL directly:** `exp://hre66og-anonymous-8099.exp.direct`
 4. **Test voice conversation flow**
 5. **Use "Tap to continue"** if auto-detection fails
 
@@ -84,7 +87,7 @@ npx expo install expo-av expo-speech lucide-react-native
 - [ ] Add more sophisticated silence detection algorithms
 - [ ] Consider native audio processing libraries
 
-### ✅ Completed (v5 - ALL CORE FIXES)
+### ✅ Completed (v6 - WAVE ANIMATIONS + ALL CORE FIXES)
 - [x] Basic check-in/check-out functionality
 - [x] AI voice conversation with TTS (iOS voice compatibility fixed)
 - [x] 3-question flow with progress indicators
@@ -96,6 +99,10 @@ npx expo install expo-av expo-speech lucide-react-native
 - [x] **Error handling for recorder state conflicts**
 - [x] **Transition guard preventing duplicate TTS/state corruption**
 - [x] **Complete 3-question voice conversation flow working**
+- [x] **🌊 Beautiful gradient wave animations with distinct colors**
+- [x] **🎨 Single wave design (Teal for AI, Coral Red for User)**
+- [x] **📱 Audio-responsive wave scaling based on voice level**
+- [x] **⚡ Smooth wave transitions and animations**
 
 ## 🔧 Development Commands
 
@@ -168,5 +175,5 @@ DailyCheckinExpo/
 ## 🚀 Next Session Quick Start
 1. Navigate to directory: `cd C:\Users\naren\.claude\DailyCheckinExpo`
 2. Start server: `npm run dev:tunnel`
-3. Use URL: `exp://hre66og-anonymous-8081.exp.direct`
+3. Use URL: `exp://hre66og-anonymous-8099.exp.direct`
 4. Continue with TO-DO list above

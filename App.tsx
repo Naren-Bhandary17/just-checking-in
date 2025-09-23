@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
+import { Phone } from 'lucide-react-native';
+import { GradientWaveAnimation } from './components/GradientWaveAnimation';
 
 export default function App() {
   console.log('=== APP COMPONENT RENDERING [v3-FIXED] ===');
@@ -46,6 +48,7 @@ export default function App() {
   ];
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showIncomingCallModal, setShowIncomingCallModal] = useState(true);
 
   // Check audio permissions and initialize recorder on app load
   useEffect(() => {
@@ -522,27 +525,27 @@ export default function App() {
           {isAISpeaking && (
             <View style={styles.aiSpeakingContainer}>
               <Text style={styles.aiSpeakingText}>🗣️ AI is asking...</Text>
-              <View style={styles.speakingAnimation}>
-                {[...Array(5)].map((_, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.speakingDot,
-                      {
-                        transform: [{
-                          scale: pulseAnim
-                        }]
-                      }
-                    ]}
-                  />
-                ))}
-              </View>
+              <GradientWaveAnimation
+                isAnimating={true}
+                colors={['#4ECDC4']}
+                amplitude={25}
+                frequency={1.5}
+                speed={1.2}
+              />
             </View>
           )}
           {isListening && (
             <View style={styles.listeningContainer}>
               <Text style={styles.listeningText}>👂 Your turn to speak</Text>
               <Text style={styles.listeningSubtext}>I'll automatically move to the next question when you're done</Text>
+              <GradientWaveAnimation
+                isAnimating={true}
+                colors={['#FF6B6B']}
+                amplitude={30}
+                frequency={2}
+                speed={1.5}
+                audioLevel={audioLevel}
+              />
               <TouchableOpacity
                 style={styles.continueButton}
                 onPress={finishCurrentQuestion}
@@ -552,25 +555,19 @@ export default function App() {
             </View>
           )}
           {(recorderState.isRecording || isRecording) && (
-            <View style={styles.visualizer}>
-              {[...Array(15)].map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.visualizerBar,
-                    {
-                      height: (audioLevel * 50) + Math.random() * 20 + 5,
-                      backgroundColor: `rgba(76, 175, 80, ${audioLevel * 0.8 + 0.2})`
-                    }
-                  ]}
-                />
-              ))}
-            </View>
-          )}
-          {(recorderState.isRecording || isRecording) && (
-            <View style={styles.durationContainer}>
-              <Text style={styles.clockIcon}>🕐</Text>
-              <Text style={styles.durationText}>{formatTime(recordingDuration)}</Text>
+            <View style={styles.recordingVisualizerContainer}>
+              <GradientWaveAnimation
+                isAnimating={true}
+                colors={['#FF6B6B']}
+                amplitude={35}
+                frequency={2.2}
+                speed={1.8}
+                audioLevel={audioLevel}
+              />
+              <View style={styles.durationContainer}>
+                <Text style={styles.clockIcon}>🕐</Text>
+                <Text style={styles.durationText}>{formatTime(recordingDuration)}</Text>
+              </View>
             </View>
           )}
         </View>
@@ -598,38 +595,69 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Daily Check-in</Text>
+      {!showIncomingCallModal && (
+        <>
+          <Text style={styles.title}>Daily Check-in</Text>
 
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>
-          Status: {isCheckedIn ? 'Checked In' : 'Not Checked In'}
-        </Text>
-        {lastCheckinTime && (
-          <Text style={styles.timeText}>
-            Last check-in: {lastCheckinTime}
-          </Text>
-        )}
-      </View>
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusText}>
+              Status: {isCheckedIn ? 'Checked In' : 'Not Checked In'}
+            </Text>
+            {lastCheckinTime && (
+              <Text style={styles.timeText}>
+                Last check-in: {lastCheckinTime}
+              </Text>
+            )}
+          </View>
 
-      <TouchableOpacity
-        style={[styles.button, isCheckedIn ? styles.checkoutButton : styles.checkinButton]}
-        onPress={() => {
-          console.log('=== BUTTON PRESSED ===');
-          console.log('isCheckedIn:', isCheckedIn);
-          console.log('Will call:', isCheckedIn ? 'handleCheckout' : 'handleCheckin');
-          if (isCheckedIn) {
-            handleCheckout();
-          } else {
-            handleCheckin();
-          }
-        }}
-      >
-        <Text style={styles.buttonText}>
-          {isCheckedIn ? 'Check Out' : 'Check In'}
-        </Text>
-      </TouchableOpacity>
+          {isCheckedIn && (
+            <TouchableOpacity
+              style={[styles.button, styles.checkoutButton]}
+              onPress={handleCheckout}
+            >
+              <Text style={styles.buttonText}>Check Out</Text>
+            </TouchableOpacity>
+          )}
+        </>
+      )}
 
       <StatusBar style="auto" />
+
+      {/* iOS-style Incoming Call Modal */}
+      {showIncomingCallModal && (
+        <View style={styles.incomingCallOverlay}>
+          <View style={styles.incomingCallModal}>
+            {/* Horizontal Layout: Icon - Text - Button */}
+            <View style={styles.horizontalLayout}>
+              {/* Profile Icon */}
+              <View style={styles.profileImageContainer}>
+                <Text style={styles.profileImagePlaceholder}>✓</Text>
+              </View>
+
+              {/* Text Section */}
+              <View style={styles.textSection}>
+                <Text style={styles.callerNameText}>Check-in</Text>
+                <Text style={styles.mobileText}>mobile</Text>
+              </View>
+
+              {/* Answer Button */}
+              <TouchableOpacity
+                style={styles.answerButton}
+                onPress={() => {
+                  setShowIncomingCallModal(false);
+                  handleCheckin();
+                }}
+              >
+                <Phone
+                  size={24}
+                  color="white"
+                  strokeWidth={2.5}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -935,5 +963,85 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
+  },
+  recordingVisualizerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+
+  // iOS-style Incoming Call Modal Styles
+  incomingCallOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  incomingCallModal: {
+    backgroundColor: 'rgba(74, 74, 74, 0.95)',
+    borderRadius: 16,
+    width: '92%',
+    maxWidth: 380,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  horizontalLayout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  profileImageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  profileImagePlaceholder: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  textSection: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  callerNameText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  mobileText: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  answerButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#34C759',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
