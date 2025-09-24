@@ -69,6 +69,8 @@ npx expo install expo-av expo-speech lucide-react-native
 
 ## 📋 TO-DO LIST
 
+> **📋 For comprehensive backend implementation, app store deployment, and LLM analysis plans, see [TECHNICAL_NEXT_STEPS.md](./TECHNICAL_NEXT_STEPS.md)**
+
 ### 🔴 High Priority (Voice Detection Issues)
 - [ ] Fix voice activity detection threshold (currently 0.15 may be too high)
 - [ ] Improve metering normalization formula (App.tsx:137)

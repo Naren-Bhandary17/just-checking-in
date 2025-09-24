@@ -48,6 +48,7 @@ export default function App() {
   ];
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const finishedQuestionRef = useRef(-1); // Track which question was last finished
   const [showIncomingCallModal, setShowIncomingCallModal] = useState(true);
 
   // Check audio permissions and initialize recorder on app load
@@ -245,7 +246,7 @@ export default function App() {
         // Voice activity detection based on actual audio levels
         // Your data: Speech ~-3dB, Silence ~-30dB, so use -15dB as threshold
         const SPEECH_THRESHOLD_DB = -15;
-        const SILENCE_DURATION = 2500; // 2.5 seconds of silence
+        const SILENCE_DURATION = 4000; // 4 seconds of silence
 
         const currentTime = Date.now();
 
@@ -264,7 +265,7 @@ export default function App() {
             const silenceDuration = currentTime - silenceStartTime;
             console.log(`Silence duration: ${silenceDuration}ms / ${SILENCE_DURATION}ms`);
 
-            if (silenceDuration > SILENCE_DURATION) {
+            if (silenceDuration > SILENCE_DURATION && !isTransitioning) {
               // Sustained silence detected - move to next question
               console.log('Silence threshold exceeded, finishing question');
               finishCurrentQuestion();
@@ -285,26 +286,28 @@ export default function App() {
     return () => {
       clearInterval(interval);
     };
-  }, [isListening, recorderState.isRecording, recorderState.metering, silenceStartTime]);
+  }, [isListening, recorderState.isRecording, recorderState.metering, silenceStartTime, isTransitioning]);
 
   const finishCurrentQuestion = async () => {
-    // Guard against multiple simultaneous calls
-    if (isTransitioning) {
-      console.log('[v5-GUARD] Already transitioning, ignoring duplicate call');
+    // Ultra-robust guard - check if this question was already finished
+    if (finishedQuestionRef.current === currentQuestion) {
+      console.log(`[v7-GUARD] Question ${currentQuestion} already finished, ignoring duplicate call`);
       return;
     }
 
-    console.log('[v5-GUARD] === FINISHING CURRENT QUESTION ===');
+    console.log(`[v7-GUARD] === FINISHING CURRENT QUESTION ${currentQuestion} ===`);
+    finishedQuestionRef.current = currentQuestion; // Mark this question as finished
     setIsTransitioning(true);
+
+    // Immediately stop silence detection to prevent more calls
+    setIsListening(false);
+    setSilenceStartTime(null);
 
     // Cleanup: useEffect will auto-cleanup interval when isListening becomes false
     if (silenceTimer) {
       clearTimeout(silenceTimer);
       setSilenceTimer(null);
     }
-
-    setIsListening(false);
-    setSilenceStartTime(null);
 
     // Force stop recording and reset all states
     await stopRecording();
@@ -313,6 +316,10 @@ export default function App() {
     setIsRecording(false);
     setHasRecording(false);
     setRecordingDuration(0);
+
+    // Reset recorder to clean state for next question
+    // Skip recorder reset - causes state corruption
+    // await resetRecorderForNextQuestion();
 
     console.log('Question cleanup complete');
 
@@ -326,8 +333,36 @@ export default function App() {
         setIsTransitioning(false); // Reset guard after transition
       }, 2000); // Extended pause to ensure clean state
     } else {
-      finishCheckin();
-      setIsTransitioning(false); // Reset guard after finishing
+      // Add delay before finishing to ensure question 3 completes properly
+      setTimeout(() => {
+        finishCheckin();
+        setIsTransitioning(false); // Reset guard after finishing
+      }, 1000);
+    }
+  };
+
+  const resetRecorderForNextQuestion = async () => {
+    console.log('[RECORDER-RESET] Resetting recorder for next question...');
+    try {
+      // Comprehensive recorder reset to ensure clean state
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      // Do a quick record/stop cycle to reset recorder state
+      try {
+        await recorder.record();
+        await new Promise(resolve => setTimeout(resolve, 50)); // Wait 50ms
+        await recorder.stop();
+        console.log('[RECORDER-RESET] Recorder state reset successfully');
+      } catch (resetError) {
+        console.log('[RECORDER-RESET] State reset failed (might be fine):', resetError.message);
+      }
+
+      console.log('[RECORDER-RESET] Recorder reset complete');
+    } catch (error) {
+      console.log('[RECORDER-RESET] Reset failed (this might be fine):', error.message);
     }
   };
 
