@@ -1,10 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TouchableOpacity, Alert, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Alert, Animated, Image } from 'react-native';
+import MaskedView from '@react-native-masked-view/masked-view';
 import { useState, useRef, useEffect } from 'react';
 import { useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import { Phone } from 'lucide-react-native';
+import { Phone, ChevronLeft } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { GradientWaveAnimation } from './components/GradientWaveAnimation';
 
 export default function App() {
@@ -509,118 +511,76 @@ export default function App() {
     Speech.stop();
   };
 
+  const handleBack = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+      speakQuestion(currentQuestion - 1);
+    } else {
+      handleDecline(); // Exit if on first question
+    }
+  };
+
   if (isInCallMode) {
     return (
       <View style={styles.callContainer}>
-        {/* Modern call header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            {(recorderState.isRecording || isRecording) && (
-              <Animated.View
-                style={[
-                  styles.recordingIndicator,
-                  {transform: [{scale: pulseAnim}]}
-                ]}
-              />
-            )}
-            <Text style={styles.callerName}>Daily Check-in</Text>
-            <Text style={styles.status}>
-              {isAISpeaking ? 'AI is speaking...' :
-               isListening ? 'Listening for your response...' :
-               (recorderState.isRecording || isRecording) ? 'Recording your response...' : 'Ready to start'}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.closeButton} onPress={handleDecline}>
-            <Text style={styles.closeText}>✕</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Back Navigation - Figma Style */}
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+          <ChevronLeft size={24} color="#FFFFFF" />
+        </TouchableOpacity>
 
-        {/* Progress indicator */}
-        <View style={styles.progressContainer}>
-          {questions.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.progressDot,
-                index === currentQuestion ? styles.progressDotActive :
-                index < currentQuestion ? styles.progressDotCompleted : {}
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Question display */}
+        {/* Question display with gradient text */}
         <View style={styles.questionContainer}>
-          <Text style={styles.questionNumber}>Question {currentQuestion + 1} of {questions.length}</Text>
-          <Text style={styles.questionText}>{questions[currentQuestion]}</Text>
+          <MaskedView
+            style={styles.maskedViewContainer}
+            maskElement={
+              <Text style={styles.questionTextMask}>{questions[currentQuestion]}</Text>
+            }
+          >
+            <LinearGradient
+              colors={['#67C8FF', '#A46AB9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.gradientTextFill}
+            />
+          </MaskedView>
         </View>
 
-        {/* Recording visualization */}
-        <View style={styles.visualizerContainer}>
-          {isAISpeaking && (
-            <View style={styles.aiSpeakingContainer}>
-              <Text style={styles.aiSpeakingText}>🗣️ AI is asking...</Text>
-              <GradientWaveAnimation
-                isAnimating={true}
-                colors={['#4ECDC4']}
-                amplitude={25}
-                frequency={1.5}
-                speed={1.2}
+        {/* Central Orb - Figma Design */}
+        <View style={styles.orbContainer}>
+          <Animated.View style={[
+            styles.outerGlow,
+            isAISpeaking && {
+              shadowOpacity: pulseAnim.interpolate({
+                inputRange: [1, 1.2],
+                outputRange: [0.8, 1.0],
+              }),
+              transform: [{
+                scale: pulseAnim.interpolate({
+                  inputRange: [1, 1.2],
+                  outputRange: [1, 1.05],
+                })
+              }]
+            }
+          ]}>
+            <View style={styles.innerGlow}>
+              <Image
+                source={require('./assets/icon.png')}
+                style={styles.orbImage}
+                resizeMode="contain"
               />
             </View>
-          )}
-          {isListening && (
-            <View style={styles.listeningContainer}>
-              <Text style={styles.listeningText}>👂 Your turn to speak</Text>
-              <Text style={styles.listeningSubtext}>I'll automatically move to the next question when you're done</Text>
-              <GradientWaveAnimation
-                isAnimating={true}
-                colors={['#FF6B6B']}
-                amplitude={30}
-                frequency={2}
-                speed={1.5}
-                audioLevel={audioLevel}
-              />
-              <TouchableOpacity
-                style={styles.continueButton}
-                onPress={finishCurrentQuestion}
-              >
-                <Text style={styles.continueButtonText}>Tap to continue</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {(recorderState.isRecording || isRecording) && (
-            <View style={styles.recordingVisualizerContainer}>
-              <GradientWaveAnimation
-                isAnimating={true}
-                colors={['#FF6B6B']}
-                amplitude={35}
-                frequency={2.2}
-                speed={1.8}
-                audioLevel={audioLevel}
-              />
-              <View style={styles.durationContainer}>
-                <Text style={styles.clockIcon}>🕐</Text>
-                <Text style={styles.durationText}>{formatTime(recordingDuration)}</Text>
-              </View>
-            </View>
-          )}
+          </Animated.View>
         </View>
 
-        {/* AI Conversation Status */}
-        <View style={styles.controlsContainer}>
-          <View style={styles.conversationStatus}>
-            <Text style={styles.conversationText}>
-              {isAISpeaking ? 'AI is speaking the question...' :
-               isListening ? 'Speak your response naturally' :
-               'AI conversation in progress'}
+        {/* Next Button - Figma Design */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.nextButton} onPress={finishCurrentQuestion}>
+            <Text style={styles.buttonText}>
+              {isAISpeaking ? 'AI is speaking...' :
+               isListening ? 'Tap to continue' :
+               (recorderState.isRecording || isRecording) ? 'Recording...' : 'Next'}
             </Text>
-            {(recorderState.isRecording || isRecording) && (
-              <Text style={styles.debugText}>
-                Audio Level: {audioLevel.toFixed(2)} | Metering: {(recorderState.metering || 0).toFixed(1)}dB
-              </Text>
-            )}
-          </View>
+          </TouchableOpacity>
         </View>
 
         <StatusBar style="light" />
@@ -749,7 +709,7 @@ const styles = StyleSheet.create({
   // Modern call interface styles
   callContainer: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#000000',
     justifyContent: 'space-between',
     paddingTop: 60,
     paddingBottom: 40,
@@ -808,8 +768,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   questionContainer: {
-    paddingHorizontal: 30,
-    alignItems: 'center',
+    position: 'absolute',
+    left: 44,
+    top: 140,
+    width: 291,
+    alignItems: 'flex-start',
   },
   questionNumber: {
     fontSize: 14,
@@ -824,6 +787,89 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 32,
     fontWeight: '400',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  maskedViewContainer: {
+    height: 66,
+    width: 291,
+  },
+  questionTextMask: {
+    fontSize: 30,
+    lineHeight: 33,
+    fontWeight: '400',
+    textAlign: 'left',
+    backgroundColor: 'transparent',
+    color: 'black', // This acts as the mask
+  },
+  gradientTextFill: {
+    height: 66,
+    width: 291,
+  },
+  orbContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -80,
+  },
+  outerGlow: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(103, 200, 255, 0.1)',
+    shadowColor: '#67C8FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  innerGlow: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(164, 106, 185, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orbImage: {
+    width: 140,
+    height: 140,
+  },
+  buttonContainer: {
+    position: 'absolute',
+    left: 27,
+    bottom: 40,
+    width: 327,
+    height: 42,
+  },
+  nextButton: {
+    width: 327,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(103, 200, 255, 0.45)',
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '400',
+    letterSpacing: 0.03 * 16,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   visualizerContainer: {
     flex: 1,
@@ -898,19 +944,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF3B30',
   },
   nextButton: {
-    height: 50,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    backgroundColor: '#4CAF50',
-    flexDirection: 'row',
+    width: 327,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(103, 200, 255, 0.45)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    gap: 8,
+    padding: 8,
   },
   nextText: {
     color: 'white',
