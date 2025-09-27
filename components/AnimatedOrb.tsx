@@ -58,7 +58,7 @@ export const AnimatedOrb: React.FC<AnimatedOrbProps> = ({
       }}
     >
       <Image
-        source={require('../assets/orb.png')}
+        source={require('../assets/icon.png')}
         style={{
           width: orbSize,
           height: orbSize,
