@@ -212,16 +212,29 @@ export default function App() {
 
   // Auto-start silence detection with current recorder state (fixes React closure issue)
   useEffect(() => {
-    // Only start if we should be monitoring
-    if (!isListening || !recorderState.isRecording) {
+    console.log('🔍 SILENCE DETECTION USEEFFECT TRIGGERED:', {
+      isListening,
+      recorderIsRecording: recorderState.isRecording,
+      recorderLocalIsRecording: recorderState.localIsRecording,
+      hasMetering: recorderState.metering !== undefined,
+      isTransitioning
+    });
+
+    // Only start if we should be monitoring - check both recording states
+    const isActuallyRecording = recorderState.isRecording || recorderState.localIsRecording;
+    if (!isListening || !isActuallyRecording) {
+      console.log('❌ SILENCE DETECTION SKIPPED - conditions not met');
       return;
     }
 
-    console.log('Setting up silence detection with fresh state');
+    console.log('✅ Setting up silence detection with fresh state');
 
     const interval = setInterval(() => {
-      // Use recorder state and metering as primary indicators
-      const isActuallyRecording = recorderState.isRecording && recorderState.metering !== undefined;
+      // Use recorder state and metering as primary indicators - check both recording states
+      const isCurrentlyRecording = recorderState.isRecording || recorderState.localIsRecording;
+      // Allow some time for metering to become available after recording starts
+      const hasMetering = recorderState.metering !== undefined && recorderState.metering !== null;
+      const isActuallyRecording = isCurrentlyRecording; // Remove metering requirement for now
 
       if (isActuallyRecording) {
         console.log('Silence detection running...', {
@@ -231,8 +244,8 @@ export default function App() {
           hasMetering: recorderState.metering !== undefined
         });
 
-        // Get real audio level from metering if available
-        const currentMeteringLevel = recorderState.metering || 0;
+        // Get real audio level from metering if available, otherwise use a default value for testing
+        const currentMeteringLevel = hasMetering ? recorderState.metering : -20; // Default to moderate level for testing
 
         // Normalize the metering level (expo-audio metering is typically in dB, ranging from -160 to 0)
         // Convert to a 0-1 scale for our UI
@@ -242,7 +255,9 @@ export default function App() {
         console.log('Audio analysis:', {
           meteringLevel: currentMeteringLevel,
           normalizedLevel: normalizedLevel.toFixed(3),
-          silenceStartTime: silenceStartTime
+          silenceStartTime: silenceStartTime,
+          hasMetering: hasMetering,
+          rawMetering: recorderState.metering
         });
 
         // Voice activity detection based on actual audio levels
@@ -278,8 +293,10 @@ export default function App() {
         console.log('Silence detection NOT running:', {
           recorderStateIsRecording: recorderState.isRecording,
           localIsRecording: isRecording,
+          recorderLocalIsRecording: recorderState.localIsRecording,
           isListening: isListening,
           hasMetering: recorderState.metering !== undefined,
+          isCurrentlyRecording: isCurrentlyRecording,
           isActuallyRecording: isActuallyRecording
         });
       }
@@ -288,7 +305,7 @@ export default function App() {
     return () => {
       clearInterval(interval);
     };
-  }, [isListening, recorderState.isRecording, recorderState.metering, silenceStartTime, isTransitioning]);
+  }, [isListening, recorderState.isRecording, recorderState.localIsRecording, recorderState.metering, silenceStartTime, isTransitioning]);
 
   const finishCurrentQuestion = async () => {
     // Ultra-robust guard - check if this question was already finished
