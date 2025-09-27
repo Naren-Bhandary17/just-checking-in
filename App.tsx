@@ -8,6 +8,7 @@ import { Audio } from 'expo-av';
 import { Phone, ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientWaveAnimation } from './components/GradientWaveAnimation';
+import { AnimatedOrb } from './components/AnimatedOrb';
 
 export default function App() {
   console.log('=== APP COMPONENT RENDERING [v3-FIXED] ===');
@@ -561,31 +562,11 @@ export default function App() {
           </MaskedView>
         </View>
 
-        {/* Central Orb - Figma Design */}
+        {/* Central Orb - Animated */}
         <View style={styles.orbContainer}>
-          <Animated.View style={[
-            styles.outerGlow,
-            isAISpeaking && {
-              shadowOpacity: pulseAnim.interpolate({
-                inputRange: [1, 1.2],
-                outputRange: [0.8, 1.0],
-              }),
-              transform: [{
-                scale: pulseAnim.interpolate({
-                  inputRange: [1, 1.2],
-                  outputRange: [1, 1.05],
-                })
-              }]
-            }
-          ]}>
-            <View style={styles.innerGlow}>
-              <Image
-                source={require('./assets/icon.png')}
-                style={styles.orbImage}
-                resizeMode="contain"
-              />
-            </View>
-          </Animated.View>
+          <AnimatedOrb
+            isAnimating={isAISpeaking || isListening || isRecording}
+          />
         </View>
 
         {/* Next Button - Figma Design */}
