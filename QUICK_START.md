@@ -22,10 +22,10 @@ When referenced, execute these steps in order:
 ## 🚀 Instant Setup & Testing
 
 ### Direct Tunnel URLs (Ready to Use)
-- **LATEST (SILENCE DETECTION FIXED):** `exp://hre66og-anonymous-8101.exp.direct` ✅ **COMPREHENSIVE SILENCE DETECTION + DIAGNOSTIC LOGGING**
+- **🔒 PERFECT (SILENCE DETECTION WORKING):** `exp://hre66og-anonymous-8102.exp.direct` ✅ **CONFIRMED WORKING - ALL 3 QUESTIONS AUTO-TRANSITION**
+- **Previous:** `exp://hre66og-anonymous-8101.exp.direct` (Diagnostic logging)
 - **Previous:** `exp://hre66og-anonymous-8099.exp.direct` (Wave animations + fixes)
 - **Backup:** `exp://hre66og-anonymous-8087.exp.direct` (Previous working version)
-- **Fallback:** `exp://hre66og-anonymous-8084.exp.direct` (Basic functionality)
 
 ### One-Command Start (Recommended)
 ```bash
@@ -67,7 +67,7 @@ npx expo install expo-av expo-speech expo-audio expo-linear-gradient lucide-reac
 
 1. **Start development server** using commands above
 2. **Open Expo Go app** on your mobile device
-3. **Enter tunnel URL directly:** `exp://hre66og-anonymous-8101.exp.direct`
+3. **Enter tunnel URL directly:** `exp://hre66og-anonymous-8102.exp.direct`
 4. **Begin conversation** - tap green phone button to answer
 5. **🔍 WATCH LOGS FOR THESE EXACT MESSAGES:**
    ```
