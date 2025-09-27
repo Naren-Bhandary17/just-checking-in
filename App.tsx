@@ -23,6 +23,7 @@ export default function App() {
   const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [silenceStartTime, setSilenceStartTime] = useState<number | null>(null);
+  const [hasUserSpoken, setHasUserSpoken] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -201,111 +202,105 @@ export default function App() {
   const startListening = async () => {
     console.log('startListening called');
     setIsListening(true);
+    setHasUserSpoken(false); // Reset for new question
+    setSilenceStartTime(null); // Reset silence tracking
+
+    // Reset two-phase detection to Phase 1 for new question
+    phaseRef.current = 'WAIT_FOR_SPEECH';
+    speechDetectedRef.current = false;
+    silenceStartRef.current = null;
+    isTransitioningRef.current = false;
+    console.log('🔄 Reset to PHASE 1: WAIT_FOR_SPEECH');
 
     try {
       await startRecording();
-      console.log('Recording started successfully, useEffect will handle silence detection automatically...');
+      console.log('Recording started successfully, two-phase detection will handle timing...');
     } catch (error) {
       console.log('Failed to start recording:', error);
       setIsListening(false);
     }
   };
 
-  // Auto-start silence detection with current recorder state (fixes React closure issue)
+  // Two-phase silence detection: Phase 1 (wait for speech) → Phase 2 (4s silence timer)
+  // Uses refs to avoid useEffect restarts and maintain stable timing
+  const phaseRef = useRef<'WAIT_FOR_SPEECH' | 'MONITOR_SILENCE'>('WAIT_FOR_SPEECH');
+  const speechDetectedRef = useRef(false);
+  const silenceStartRef = useRef<number | null>(null);
+  const isTransitioningRef = useRef(false);
+
   useEffect(() => {
-    console.log('🔍 SILENCE DETECTION USEEFFECT TRIGGERED:', {
-      isListening,
-      localIsRecording: isRecording,
-      recorderIsRecording: recorderState.isRecording,
-      hasMetering: recorderState.metering !== undefined,
-      isTransitioning
-    });
+    console.log('🎯 TWO-PHASE SILENCE DETECTION STARTING - UNIFIED SOLUTION v1.0');
 
-    // Only start if we should be monitoring - use local isRecording state as primary indicator
-    const isActuallyRecording = recorderState.isRecording || isRecording;
-    if (!isListening || !isActuallyRecording) {
-      console.log('❌ SILENCE DETECTION SKIPPED - conditions not met');
-      return;
-    }
-
-    console.log('✅ Setting up silence detection with fresh state');
+    // Update refs with current state (avoids stale closures)
+    isTransitioningRef.current = isTransitioning;
 
     const interval = setInterval(() => {
-      // Use recorder state and metering as primary indicators - check both recording states
-      const isCurrentlyRecording = recorderState.isRecording || isRecording;
-      // Allow some time for metering to become available after recording starts
+      // Exit early if not in recording mode
+      const isActuallyRecording = recorderState.isRecording || isRecording;
+      if (!isListening || !isActuallyRecording || isTransitioningRef.current) {
+        return;
+      }
+
+      // Get audio level
       const hasMetering = recorderState.metering !== undefined && recorderState.metering !== null;
-      const isActuallyRecording = isCurrentlyRecording; // Remove metering requirement for now
+      const currentMeteringLevel = hasMetering ? recorderState.metering : -20;
+      const normalizedLevel = Math.max(0, Math.min(1, (currentMeteringLevel + 50) / 50));
+      setAudioLevel(normalizedLevel);
 
-      if (isActuallyRecording) {
-        console.log('Silence detection running...', {
-          recorderStateIsRecording: recorderState.isRecording,
-          localIsRecording: isRecording,
-          isListening: isListening,
-          hasMetering: recorderState.metering !== undefined
-        });
+      // Constants
+      const SPEECH_THRESHOLD_DB = -15;
+      const SILENCE_DURATION = 4000; // 4 seconds
+      const currentTime = Date.now();
 
-        // Get real audio level from metering if available, otherwise use a default value for testing
-        const currentMeteringLevel = hasMetering ? recorderState.metering : -20; // Default to moderate level for testing
+      // Determine if currently speaking
+      const isSpeaking = currentMeteringLevel > SPEECH_THRESHOLD_DB;
 
-        // Normalize the metering level (expo-audio metering is typically in dB, ranging from -160 to 0)
-        // Convert to a 0-1 scale for our UI
-        const normalizedLevel = Math.max(0, Math.min(1, (currentMeteringLevel + 50) / 50));
-        setAudioLevel(normalizedLevel);
+      console.log(`📊 Phase: ${phaseRef.current}, Speaking: ${isSpeaking}, Level: ${currentMeteringLevel}dB`);
 
-        console.log('Audio analysis:', {
-          meteringLevel: currentMeteringLevel,
-          normalizedLevel: normalizedLevel.toFixed(3),
-          silenceStartTime: silenceStartTime,
-          hasMetering: hasMetering,
-          rawMetering: recorderState.metering
-        });
-
-        // Voice activity detection based on actual audio levels
-        // Your data: Speech ~-3dB, Silence ~-30dB, so use -15dB as threshold
-        const SPEECH_THRESHOLD_DB = -15;
-        const SILENCE_DURATION = 4000; // 4 seconds of silence
-
-        const currentTime = Date.now();
-
-        if (currentMeteringLevel > SPEECH_THRESHOLD_DB) {
-          // User is speaking - reset silence tracking
-          if (silenceStartTime) {
-            console.log('Speech detected, resetting silence timer');
-          }
-          setSilenceStartTime(null);
+      if (phaseRef.current === 'WAIT_FOR_SPEECH') {
+        // PHASE 1: Wait for user to start speaking (NO TIMER)
+        if (isSpeaking) {
+          console.log('🎤 PHASE 1→2: Speech detected! Transitioning to silence monitoring');
+          phaseRef.current = 'MONITOR_SILENCE';
+          speechDetectedRef.current = true;
+          silenceStartRef.current = null; // Reset silence timer
+          setHasUserSpoken(true);
+        }
+        // No auto-transition in Phase 1 - just wait for speech
+      } else {
+        // PHASE 2: Monitor for 4 seconds of silence after speech detected
+        if (isSpeaking) {
+          // Still speaking - reset silence timer
+          console.log('🗣️ PHASE 2: Speech continues, resetting silence timer');
+          silenceStartRef.current = null;
         } else {
-          // Audio level is below threshold - potential silence
-          if (!silenceStartTime) {
-            console.log('Silence started, starting timer');
-            setSilenceStartTime(currentTime);
+          // Silence detected
+          if (silenceStartRef.current === null) {
+            console.log('🤫 PHASE 2: Silence started, beginning 4s countdown');
+            silenceStartRef.current = currentTime;
           } else {
-            const silenceDuration = currentTime - silenceStartTime;
-            console.log(`Silence duration: ${silenceDuration}ms / ${SILENCE_DURATION}ms`);
+            const silenceDuration = currentTime - silenceStartRef.current;
+            console.log(`⏱️ PHASE 2: Silence duration: ${silenceDuration}ms / ${SILENCE_DURATION}ms`);
 
-            if (silenceDuration > SILENCE_DURATION && !isTransitioning) {
-              // Sustained silence detected - move to next question
-              console.log('Silence threshold exceeded, finishing question');
+            if (silenceDuration >= SILENCE_DURATION) {
+              console.log('✅ PHASE 2: 4s silence completed - AUTO-TRANSITIONING');
+              isTransitioningRef.current = true;
               finishCurrentQuestion();
             }
           }
         }
-      } else {
-        console.log('Silence detection NOT running:', {
-          recorderStateIsRecording: recorderState.isRecording,
-          localIsRecording: isRecording,
-          isListening: isListening,
-          hasMetering: recorderState.metering !== undefined,
-          isCurrentlyRecording: isCurrentlyRecording,
-          isActuallyRecording: isActuallyRecording
-        });
       }
-    }, 200); // Check every 200ms for more responsive detection
+    }, 200);
 
     return () => {
       clearInterval(interval);
     };
-  }, [isListening, recorderState.isRecording, isRecording, recorderState.metering, silenceStartTime, isTransitioning]);
+  }, [isListening, recorderState.isRecording, isRecording]); // Minimal dependencies - no state variables
+
+  // Update transitioning ref when state changes
+  useEffect(() => {
+    isTransitioningRef.current = isTransitioning;
+  }, [isTransitioning]);
 
   const finishCurrentQuestion = async () => {
     // Ultra-robust guard - check if this question was already finished

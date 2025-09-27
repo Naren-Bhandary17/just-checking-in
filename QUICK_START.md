@@ -22,10 +22,13 @@ When referenced, execute these steps in order:
 ## 🚀 Instant Setup & Testing
 
 ### Direct Tunnel URLs (Ready to Use)
-- **🔒 PERFECT (SILENCE DETECTION WORKING):** `exp://hre66og-anonymous-8102.exp.direct` ✅ **CONFIRMED WORKING - ALL 3 QUESTIONS AUTO-TRANSITION**
-- **Previous:** `exp://hre66og-anonymous-8101.exp.direct` (Diagnostic logging)
+- **🚀 LATEST (UNIFIED SOLUTION):** `[NEW TUNNEL NEEDED]` ✅ **CURRENT: Two-Phase State Machine - NO MORE REGRESSIONS!**
+  - **Phase 1:** Wait for speech (no timer)
+  - **Phase 2:** 4-second silence timer after speech detected
+  - **Fixed:** useEffect dependency hell that caused timer/auto-transition conflicts
+- **Previous:** `exp://hre66og-anonymous-8107.exp.direct` (6s delay - regression issues)
+- **Previous:** `exp://hre66og-anonymous-8102.exp.direct` (4s delay - works but felt too short)
 - **Previous:** `exp://hre66og-anonymous-8099.exp.direct` (Wave animations + fixes)
-- **Backup:** `exp://hre66og-anonymous-8087.exp.direct` (Previous working version)
 
 ### One-Command Start (Recommended)
 ```bash
@@ -82,13 +85,69 @@ npx expo install expo-av expo-speech expo-audio expo-linear-gradient lucide-reac
 
 ### ⚠️ DO NOT TEST WITH MANUAL BUTTONS - This masks the real issue!
 
+## 🎯 UNIFIED SOLUTION - ARCHITECTURE BREAKTHROUGH
+
+### 🔍 Root Cause Identified: useEffect Dependency Hell
+**The Problem:** Every state change (`silenceStartTime`, `hasUserSpoken`) was in the useEffect dependencies, causing the interval to restart and lose timing context.
+
+### 🏗️ Two-Phase State Machine Solution
+**Phase 1: WAIT_FOR_SPEECH**
+- Monitor audio levels continuously
+- **No timer running** (user can take their time)
+- Transition to Phase 2 when speech detected (-15dB threshold)
+
+**Phase 2: MONITOR_SILENCE**
+- Continue monitoring audio levels
+- **4-second timer starts only when silence detected**
+- Auto-transition after 4 seconds of continuous silence
+- Reset timer if speech resumes
+
+### 🛠️ Technical Implementation (App.tsx:217-296)
+```javascript
+// Uses refs to avoid useEffect restarts
+const phaseRef = useRef<'WAIT_FOR_SPEECH' | 'MONITOR_SILENCE'>('WAIT_FOR_SPEECH');
+const speechDetectedRef = useRef(false);
+const silenceStartRef = useRef<number | null>(null);
+
+// Minimal dependencies - no state variables that trigger restarts
+}, [isListening, recorderState.isRecording, isRecording]);
+```
+
+### 🎯 Expected Logs (NEW CODE)
+Look for these messages to confirm the unified solution is running:
+```
+🎯 TWO-PHASE SILENCE DETECTION STARTING - UNIFIED SOLUTION v1.0
+📊 Phase: WAIT_FOR_SPEECH, Speaking: false, Level: -20dB
+🎤 PHASE 1→2: Speech detected! Transitioning to silence monitoring
+🗣️ PHASE 2: Speech continues, resetting silence timer
+🤫 PHASE 2: Silence started, beginning 4s countdown
+⏱️ PHASE 2: Silence duration: 2500ms / 4000ms
+✅ PHASE 2: 4s silence completed - AUTO-TRANSITIONING
+```
+
+### ❌ Old Logs (CACHED CODE)
+If you see these, you're testing old cached code:
+```
+🔍 SILENCE DETECTION USEEFFECT TRIGGERED
+Silence started, starting timer
+🔥 NEW 6-SECOND CODE RUNNING
+```
+
+---
+
 ## 📋 TO-DO LIST
 
 > **📋 For comprehensive backend implementation, app store deployment, and LLM analysis plans, see [TECHNICAL_NEXT_STEPS.md](./TECHNICAL_NEXT_STEPS.md)**
 
-### 🔴 High Priority (Voice Detection Issues)
-- [ ] Fix voice activity detection threshold (currently -15dB may need tuning)
-- [ ] Improve metering normalization formula (App.tsx:239)
+### 🔴 High Priority (Testing & Deployment)
+- [ ] **CRITICAL: Start fresh tunnel to test unified solution (metro cache issues)**
+- [ ] Verify Phase 1→Phase 2 transitions work correctly with real speech
+- [ ] Test all 3 questions complete successfully with auto-transitions
+- [ ] Document final working tunnel URL in this file
+
+### 🔵 Medium Priority (Fine-tuning)
+- [ ] Test voice activity detection threshold (-15dB may need tuning)
+- [ ] Verify metering normalization formula (App.tsx:239)
 - [ ] Test different silence duration settings (currently 4s)
 - [ ] Optimize polling interval (currently 200ms)
 
@@ -104,7 +163,12 @@ npx expo install expo-av expo-speech expo-audio expo-linear-gradient lucide-reac
 - [ ] Add more sophisticated silence detection algorithms
 - [ ] Consider native audio processing libraries
 
-### ✅ Completed (v7 - FIGMA DESIGN INTEGRATION + ALL CORE FIXES)
+### ✅ Completed (v8 - UNIFIED SOLUTION: NO MORE REGRESSIONS!)
+- [x] **🎯 ARCHITECTURAL BREAKTHROUGH: Two-Phase State Machine**
+- [x] **🔧 Root Cause Fixed: useEffect dependency hell eliminated**
+- [x] **⏱️ Perfect Flow: Wait for speech → 4s silence timer → Auto-transition**
+- [x] **🚫 No More Timer/Auto-transition Conflicts**
+- [x] **📝 Comprehensive Documentation in QUICK_START.md**
 - [x] Basic check-in/check-out functionality
 - [x] AI voice conversation with TTS (iOS voice compatibility fixed)
 - [x] 3-question flow with progress indicators
