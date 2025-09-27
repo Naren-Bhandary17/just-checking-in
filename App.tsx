@@ -214,14 +214,14 @@ export default function App() {
   useEffect(() => {
     console.log('🔍 SILENCE DETECTION USEEFFECT TRIGGERED:', {
       isListening,
+      localIsRecording: isRecording,
       recorderIsRecording: recorderState.isRecording,
-      recorderLocalIsRecording: recorderState.localIsRecording,
       hasMetering: recorderState.metering !== undefined,
       isTransitioning
     });
 
-    // Only start if we should be monitoring - check both recording states
-    const isActuallyRecording = recorderState.isRecording || recorderState.localIsRecording;
+    // Only start if we should be monitoring - use local isRecording state as primary indicator
+    const isActuallyRecording = recorderState.isRecording || isRecording;
     if (!isListening || !isActuallyRecording) {
       console.log('❌ SILENCE DETECTION SKIPPED - conditions not met');
       return;
@@ -231,7 +231,7 @@ export default function App() {
 
     const interval = setInterval(() => {
       // Use recorder state and metering as primary indicators - check both recording states
-      const isCurrentlyRecording = recorderState.isRecording || recorderState.localIsRecording;
+      const isCurrentlyRecording = recorderState.isRecording || isRecording;
       // Allow some time for metering to become available after recording starts
       const hasMetering = recorderState.metering !== undefined && recorderState.metering !== null;
       const isActuallyRecording = isCurrentlyRecording; // Remove metering requirement for now
@@ -293,7 +293,6 @@ export default function App() {
         console.log('Silence detection NOT running:', {
           recorderStateIsRecording: recorderState.isRecording,
           localIsRecording: isRecording,
-          recorderLocalIsRecording: recorderState.localIsRecording,
           isListening: isListening,
           hasMetering: recorderState.metering !== undefined,
           isCurrentlyRecording: isCurrentlyRecording,
@@ -305,7 +304,7 @@ export default function App() {
     return () => {
       clearInterval(interval);
     };
-  }, [isListening, recorderState.isRecording, recorderState.localIsRecording, recorderState.metering, silenceStartTime, isTransitioning]);
+  }, [isListening, recorderState.isRecording, isRecording, recorderState.metering, silenceStartTime, isTransitioning]);
 
   const finishCurrentQuestion = async () => {
     // Ultra-robust guard - check if this question was already finished
